@@ -3,11 +3,14 @@
 #include <unordered_map>
 using namespace std;
 
+stack <char> operators;
+stack <int> numbers;
+
 bool is_num(char x){
     return (int)x >= 48 && (int)x <= 57;
 }
 
-int calculate(char op, int operand1, int operand2){
+int perform_calculation(char op, int operand1, int operand2){
     switch(op){
     case '+':
         return operand1 + operand2;
@@ -20,13 +23,20 @@ int calculate(char op, int operand1, int operand2){
     }
 }
 
+void calculate(){
+    char operand2 = numbers.top();
+    numbers.pop();
+    char operand1 = numbers.top();
+    numbers.pop();
+
+    int res = perform_calculation(operators.top(), operand1, operand2);
+    numbers.push(res);
+    operators.pop();
+}
+
 int main(){
     string input = "(1+2)*3+5";
-    string expression = "";
-    stack <char> operators;
-    stack <int> numbers;
     unordered_map<char, short> op_prec;
-    int res, operand1, operand2;
 
     op_prec['('] = 5;
     op_prec['/'] = 4;
@@ -42,27 +52,13 @@ int main(){
             char tos = operators.top();
             if (in == ')'){
                 while (!operators.empty() && operators.top() != '('){
-                    operand2 = numbers.top();
-                    numbers.pop();
-                    operand1 = numbers.top();
-                    numbers.pop();
-
-                    res = calculate(operators.top(), operand1, operand2);
-                    numbers.push(res);
-                    operators.pop();
+                    calculate();
                 }
                 operators.pop(); // pop the ( as well
             }
             else if (op_prec[in] < op_prec[tos] && tos != '('){
                 while (!operators.empty() && op_prec[in] <= op_prec[operators.top()]){
-                    operand2 = numbers.top();
-                    numbers.pop();
-                    operand1 = numbers.top();
-                    numbers.pop();
-
-                    res = calculate(operators.top(), operand1, operand2);
-                    numbers.push(res);
-                    operators.pop();
+                    calculate();
                 }
                 operators.push(in);
             }
@@ -76,14 +72,15 @@ int main(){
     }
 
     while (!operators.empty()){
-        operand2 = numbers.top();
-        numbers.pop();
-        operand1 = numbers.top();
-        numbers.pop();
-
-        res = calculate(operators.top(), operand1, operand2);
-        numbers.push(res);
-        operators.pop();
+        if (operators.top() == ')'){
+            while (!operators.empty() && operators.top() != '('){
+                calculate();
+            }
+            operators.pop(); // pop the ( as well
+        }
+        else{
+            calculate();
+        }
     }
     cout<<"res: "<<numbers.top();
 
