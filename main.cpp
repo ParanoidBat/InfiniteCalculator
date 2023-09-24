@@ -32,17 +32,48 @@ char get_opening_bracket(char in){
     }
 }
 
-int perform_calculation(char op, int operand1, int operand2){
-    switch(op){
-    case '+':
-        return operand1 + operand2;
-    case '-':
-        return operand1 - operand2;
-    case '*':
-        return operand1 * operand2;
-    case '/':
-        return operand1 / operand2;
+char handle_carry_result(short res, bool& carry){
+    if(res > 9){
+        res = res - 9 - 1; // get the least significant digit of the number
+        carry = true;
     }
+    else{
+        carry = false;
+    }
+
+    char char_res = (char)(res + 48); // get the ASCII representation of the actual number
+
+    return char_res;
+}
+
+string addition(string x, string y) {
+    bool carry = false;
+
+    if(x.length() < y.length() ){
+        swap(x, y);
+    }
+
+    string result = "";
+    short op1, op2, local_res;
+    char char_res;
+    for(string::reverse_iterator ix = x.rbegin(), iy = y.rbegin(); ix != x.rend(); ix++, iy++ ){
+        if (iy == y.rend()){
+            // the smaller number has ended.
+            op1 = (short)(*ix - 48);
+
+            local_res = op1 + carry;
+            result.push_back(handle_carry_result(local_res, carry));
+        }
+        else{
+            op1 = (short)(*ix - 48); // get the actual number instead of the ASCII
+            op2 = (short)(*iy - 48);
+
+            local_res = op1 + op2 + carry;
+            result.push_back(handle_carry_result(local_res, carry));
+        }
+    }
+
+    return result;
 }
 
 void calculate(){
@@ -51,13 +82,20 @@ void calculate(){
     string operand1 = numbers.top();
     numbers.pop();
 
-//    int res = perform_calculation(operators.top(), operand1, operand2);
-//    numbers.push(res);
-//    operators.pop();
+    string res;
+
+    switch(operators.top()){
+    case '+':
+        res = addition(operand1, operand2);
+        break;
+    }
+
+    numbers.push(res);
+    operators.pop();
 }
 
 int main(){
-    string input = "25+50";
+    string input = "250+60";
     char in;
     unordered_map<char, short> op_prec;
     bool isNum = false;
@@ -130,7 +168,7 @@ int main(){
             calculate();
         }
     }
-//    cout<<"res: "<<numbers.top();
+    cout<<"res: "<<numbers.top();
 
     return 0;
 }
