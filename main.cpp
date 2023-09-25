@@ -32,6 +32,15 @@ char get_opening_bracket(char in){
     }
 }
 
+string reverse_string(string str) {
+    string rev_str = "";
+    for(string::reverse_iterator i = str.rbegin(); i != str.rend(); i++){
+        rev_str.push_back(*i);
+    }
+
+    return rev_str;
+}
+
 char handle_carry_result(short res, bool& carry){
     if(res > 9){
         res = res - 9 - 1; // get the least significant digit of the number
@@ -57,7 +66,7 @@ string addition(string x, string y) {
     short op1, op2, local_res;
     char char_res;
     for(string::reverse_iterator ix = x.rbegin(), iy = y.rbegin(); ix != x.rend(); ix++, iy++ ){
-        if (iy == y.rend()){
+        if (iy >= y.rend()){
             // the smaller number has ended.
             op1 = (short)(*ix - 48);
 
@@ -71,6 +80,10 @@ string addition(string x, string y) {
             local_res = op1 + op2 + carry;
             result.push_back(handle_carry_result(local_res, carry));
         }
+    }
+
+    if(carry) {
+        result.push_back('1');
     }
 
     return result;
@@ -90,12 +103,12 @@ void calculate(){
         break;
     }
 
-    numbers.push(res);
+    numbers.push(reverse_string(res));
     operators.pop();
 }
 
 int main(){
-    string input = "250+60";
+    string input = "500+150025";
     char in;
     unordered_map<char, short> op_prec;
     bool isNum = false;
