@@ -6,8 +6,11 @@
 
 using namespace std;
 
+typedef string::reverse_iterator rit;
+
 stack <char> operators;
 stack <string> numbers;
+// TODO: shrink to fit each string after the whole number has been read
 
 bool is_num(char x){
     return (int)x >= 48 && (int)x <= 57;
@@ -34,7 +37,7 @@ char get_opening_bracket(char in){
 
 string reverse_string(string str) {
     string rev_str = "";
-    for(string::reverse_iterator i = str.rbegin(); i != str.rend(); i++){
+    for(rit i = str.rbegin(); i != str.rend(); i++){
         rev_str.push_back(*i);
     }
 
@@ -43,7 +46,8 @@ string reverse_string(string str) {
 
 char handle_carry_result(short res, bool& carry){
     if(res > 9){
-        res = res - 9 - 1; // get the least significant digit of the number
+        // get the least significant digit of the number
+        res %= 10;
         carry = true;
     }
     else{
@@ -55,17 +59,31 @@ char handle_carry_result(short res, bool& carry){
     return char_res;
 }
 
+char handle_carry_result(short res, short& carry){
+    if(res > 9){
+        // get the least significant digit of the number
+        carry = res/10;
+        res %= 10;
+    }
+    else{
+        carry = 0;
+    }
+
+    char char_res = (char)(res + 48); // get the ASCII representation of the actual number
+
+    return char_res;
+}
+
 string addition(string x, string y) {
     bool carry = false;
+    string result = "";
+    short op1, op2, local_res;
 
     if(x.length() < y.length() ){
         swap(x, y);
     }
 
-    string result = "";
-    short op1, op2, local_res;
-    char char_res;
-    for(string::reverse_iterator ix = x.rbegin(), iy = y.rbegin(); ix != x.rend(); ix++, iy++ ){
+    for(rit ix = x.rbegin(), iy = y.rbegin(); ix != x.rend(); ix++, iy++ ){
         if (iy >= y.rend()){
             // the smaller number has ended.
             op1 = (short)(*ix - 48);
@@ -86,6 +104,54 @@ string addition(string x, string y) {
         result.push_back('1');
     }
 
+    return reverse_string(result);
+}
+
+string multiplication(string x, string y) {
+    string result = "", str_op1 = "";
+    short op1, op2, local_res;
+    short carry = 0;
+    stack<string> results;
+
+    if(x.length() < y.length() ){
+        swap(x, y);
+    }
+
+    for(rit ix = x.rbegin(); ix != x.rend(); ix++){
+        results.push("");
+        for(rit iy = y.rbegin(); iy != y.rend(); iy++){
+            op1 = (short)(*ix - 48);
+            op2 = (short)(*iy - 48);
+
+            local_res = (op1*op2) + carry;
+            results.top().push_back(handle_carry_result(local_res, carry));
+        }
+        if(carry){
+            results.top().push_back((char)(carry+48));
+            carry = 0;
+        }
+    }
+
+    size_t no_of_results = results.size();
+    result = reverse_string(results.top());
+    results.pop();
+
+    if(results.empty()){
+        // single digits multiplication will only have one results element
+        return result;
+    }
+
+    no_of_results--;
+    result.insert(result.end(), no_of_results, '0');
+
+    for( size_t i = no_of_results - 1; !results.empty(); i-- ){
+        str_op1 = reverse_string(results.top());
+        str_op1.insert(str_op1.end(), i, '0'); // pad with zero to emulate the 'x' in manual multiplication
+        results.pop();
+
+        result = addition(str_op1, result);
+    }
+
     return result;
 }
 
@@ -101,16 +167,19 @@ void calculate(){
     case '+':
         res = addition(operand1, operand2);
         break;
+    case '*':
+        res = multiplication(operand1, operand2);
+        break;
     }
 
-    numbers.push(reverse_string(res));
+    numbers.push(res);
     operators.pop();
 }
 
 // TODO: Optimization -> when adding or subtracting, remove from the both operands the same amount of zeros from the right side.
 // The same amount of zeros can then be appended to the result string. This will reduce the iterations
 int main(){
-    string input = "340282366920000000000000000000000000000+340282366920000000000000000000000000000";
+    string input = "7845201*(8645321+10)*4+5";
     char in;
     unordered_map<char, short> op_prec;
     bool isNum = false;
