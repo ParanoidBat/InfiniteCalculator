@@ -61,7 +61,6 @@ char handle_carry_result(short res, bool& carry){
 
 char handle_carry_result(short res, short& carry){
     if(res > 9){
-        // get the least significant digit of the number
         carry = res/10;
         res %= 10;
     }
@@ -69,7 +68,7 @@ char handle_carry_result(short res, short& carry){
         carry = 0;
     }
 
-    char char_res = (char)(res + 48); // get the ASCII representation of the actual number
+    char char_res = (char)(res + 48);
 
     return char_res;
 }
@@ -102,6 +101,72 @@ string addition(string x, string y) {
 
     if(carry) {
         result.push_back('1');
+    }
+
+    return reverse_string(result);
+}
+
+string subtraction(string x, string y){
+    bool isSigned = false;
+    short op1, op2, local_res;
+    string result;
+    char curr_num;
+
+    if(x.length() < y.length()){
+        swap(x, y);
+        isSigned = true;
+    }
+    if(x.length() == y.length()){
+        for(size_t i = 0; i < x.length(); i++){
+            if(x[i] < y[i]){
+                swap(x,y);
+                isSigned = true;
+                break;
+            }
+            if(x[i] > y[i]){
+                break; // X is greater than Y
+            }
+        }
+    }
+
+    for(rit ix = x.rbegin(), iy = y.rbegin(); ix != x.rend(); ix++, iy++){
+        if(iy >= y.rend()){
+            result.push_back(*ix);
+        }
+        else{
+            op1 = (short)(*ix - 48);
+            op2 = (short)(*iy - 48);
+
+            if(op1 < op2){
+                // borrow
+                int units = 1; // number of digits traversed back to get a borrow
+                do {
+                    curr_num = *(ix+units);
+                    units++;
+                }
+                while(curr_num == '0');
+
+                units--; // the position of the first non-zero character encountered
+                *(ix+units) -= 1; // subtract 1 from the borrowed number
+                units--;
+
+                for(; units > 0; units--){
+                    // replace all the zeros we came across, with 9
+                    *(ix+units) = '9';
+                }
+
+                op1 = 10 + op1;
+            }
+
+            local_res = op1 - op2;
+
+            char char_res = (char)(local_res + 48);
+            result.push_back(char_res);
+        }
+    }
+
+    if(isSigned){
+        result.push_back('-');
     }
 
     return reverse_string(result);
@@ -170,6 +235,9 @@ void calculate(){
     case '*':
         res = multiplication(operand1, operand2);
         break;
+    case '-':
+        res = subtraction(operand1, operand2);
+        break;
     }
 
     numbers.push(res);
@@ -179,7 +247,7 @@ void calculate(){
 // TODO: Optimization -> when adding or subtracting, remove from the both operands the same amount of zeros from the right side.
 // The same amount of zeros can then be appended to the result string. This will reduce the iterations
 int main(){
-    string input = "7845201*(8645321+10)*4+5";
+    string input = "874652-8645213";
     char in;
     unordered_map<char, short> op_prec;
     bool isNum = false;
