@@ -107,8 +107,10 @@ void calculate(){
     operators.pop();
 }
 
+// TODO: Optimization -> when adding or subtracting, remove from the both operands the same amount of zeros from the right side.
+// The same amount of zeros can then be appended to the result string. This will reduce the iterations
 int main(){
-    string input = "500+150025";
+    string input = "340282366920000000000000000000000000000+340282366920000000000000000000000000000";
     char in;
     unordered_map<char, short> op_prec;
     bool isNum = false;
@@ -170,6 +172,7 @@ int main(){
     }
 
     while (!operators.empty()){
+        // TODO: Check if the following condition can be true. if not; remove condition
         if (is_closing_bracket(operators.top())){
             char opening_bracket = get_opening_bracket(operators.top());
             while (!operators.empty() && operators.top() != opening_bracket){
