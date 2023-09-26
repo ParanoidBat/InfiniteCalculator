@@ -75,6 +75,23 @@ char handle_carry_result(short res, short& carry){
     return char_res;
 }
 
+void validate_dividend(string dividend, string divisor, bool& is_divisor_smaller){
+    if(dividend.length() < divisor.length()){
+        is_divisor_smaller = false;
+    }
+    else if(dividend.length() == divisor.length()){
+        for(size_t i = 0; i < dividend.length(); i++){
+            if(dividend[i] < divisor[i]){
+                is_divisor_smaller = false;
+                break;
+            }
+            if(dividend[i] > divisor[i]){
+                break; // dividend is greater than divisor
+            }
+        }
+    }
+}
+
 string addition(string x, string y) {
     bool isSigned = false;
 
@@ -158,8 +175,6 @@ string subtraction(string x, string y){
 
         double_negative = true;
     }
-
-    cout<<"x: "<<x<<", y: "<<y<<endl;
 
     short op1, op2, local_res;
     string result;
@@ -331,20 +346,7 @@ string division(string dividend, string divisor) {
         divisor.erase(divisor.begin());
     }
 
-    if(dividend.length() < divisor.length()){
-        is_divisor_smaller = false;
-    }
-    if(dividend.length() == divisor.length()){
-        for(size_t i = 0; i < dividend.length(); i++){
-            if(dividend[i] < divisor[i]){
-                is_divisor_smaller = false;
-                break;
-            }
-            if(dividend[i] > divisor[i]){
-                break; // dividend is greater than divisor
-            }
-        }
-    }
+    validate_dividend(dividend, divisor, is_divisor_smaller);
 
     while(!dividend.empty() && decimal_places ){
         quotient = "0";
@@ -353,14 +355,30 @@ string division(string dividend, string divisor) {
             dividend = subtraction(dividend, divisor);
             quotient = addition(quotient, "1");
 
-            cout<<"dividend: "<<dividend<<", divisor: "<<divisor<<endl;
-
             if(dividend.empty()){
                 break;
             }
 
+            validate_dividend(dividend, divisor, is_divisor_smaller);
+        }
+
+        if(dividend.empty()){
+            continue; // will essentially break the parent while loop
+        }
+
+        // Attach a . in quotient and append four 0s with dividend
+        result = quotient + ".";
+        is_fraction = true;
+
+        while(decimal_places){
+            decimal_places--;
+            quotient = "0";
+            dividend.push_back('0');
+            is_divisor_smaller = true;
+
             if(dividend.length() < divisor.length()){
                 is_divisor_smaller = false;
+                continue;
             }
             if(dividend.length() == divisor.length()){
                 for(size_t i = 0; i < dividend.length(); i++){
@@ -373,21 +391,38 @@ string division(string dividend, string divisor) {
                     }
                 }
             }
-        }
 
-        if(dividend.empty() || !decimal_places){
-            continue; // will essentially break the parent while loop
-        }
+            while(is_divisor_smaller){
+                dividend = subtraction(dividend, divisor);
+                quotient = addition(quotient, "1");
 
-        // Attach a . in quotient and append four 0s with dividend
-        result = quotient + ".";
-        is_fraction = true;
-        is_divisor_smaller = true;
-        dividend.append(4,'0');
-        continue;
+                if(dividend.length() < divisor.length()){
+                    is_divisor_smaller = false;
+                    continue;
+                }
+                if(dividend.length() == divisor.length()){
+                    for(size_t i = 0; i < dividend.length(); i++){
+                        if(dividend[i] < divisor[i]){
+                            is_divisor_smaller = false;
+                            break;
+                        }
+                        if(dividend[i] > divisor[i]){
+                            break;
+                        }
+                    }
+                }
+            }
+            result += quotient;
+            if(dividend.empty()){
+                break;
+            }
+        }
     }
 
-    return result+quotient;
+    if(isSigned){
+        result.insert(result.begin(), '-');
+    }
+    return result;
 }
 
 void calculate(){
@@ -420,7 +455,7 @@ void calculate(){
 // TODO: Optimization -> when adding or subtracting, remove from the both operands the same amount of zeros from the right side.
 // The same amount of zeros can then be appended to the result string. This will reduce the iterations
 int main(){
-    string input = "550/21";
+    string input = "21/-550";
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
