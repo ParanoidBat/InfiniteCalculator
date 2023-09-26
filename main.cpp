@@ -12,6 +12,8 @@ stack <char> operators;
 stack <string> numbers;
 // TODO: shrink to fit each string after the whole number has been read
 
+string subtraction(string x, string y);
+
 bool is_num(char x){
     return (int)x >= 48 && (int)x <= 57;
 }
@@ -74,6 +76,27 @@ char handle_carry_result(short res, short& carry){
 }
 
 string addition(string x, string y) {
+    bool isSigned = false;
+
+    if((x.at(0) == '-') != (y.at(0) == '-')){
+        if(x.at(0) == '-'){
+            x.erase(x.begin());
+            swap(x, y); // let subtraction function handle the signing criteria
+        }
+        else{
+            y.erase(y.begin());
+        }
+
+        return subtraction(x, y);
+    }
+    if(x.at(0) == '-' && y.at(0) == '-'){
+        isSigned = true;
+
+        // remove the signs
+        x.erase(x.begin());
+        y.erase(y.begin());
+    }
+
     bool carry = false;
     string result = "";
     short op1, op2, local_res;
@@ -91,7 +114,7 @@ string addition(string x, string y) {
             result.push_back(handle_carry_result(local_res, carry));
         }
         else{
-            op1 = (short)(*ix - 48); // get the actual number instead of the ASCII
+            op1 = (short)(*ix - 48); // get  the actual number instead of the ASCII
             op2 = (short)(*iy - 48);
 
             local_res = op1 + op2 + carry;
@@ -102,12 +125,40 @@ string addition(string x, string y) {
     if(carry) {
         result.push_back('1');
     }
+    if(isSigned){
+        result.push_back('-');
+    }
 
     return reverse_string(result);
 }
 
 string subtraction(string x, string y){
     bool isSigned = false;
+    bool double_negative = false;
+
+    if((x.at(0) == '-') != (y.at(0) == '-')){
+        if(x.at(0) == '-'){
+            x.erase(x.begin());
+            isSigned = true;
+        }
+        else{
+            y.erase(y.begin());
+        }
+
+        string res = addition(x, y);
+        if(isSigned){
+            res.insert(res.begin(), '-');
+        }
+        return res;
+    }
+    if(x.at(0) == '-' && y.at(0) == '-'){
+        // remove the signs
+        x.erase(x.begin());
+        y.erase(y.begin());
+
+        double_negative = true;
+    }
+
     short op1, op2, local_res;
     string result;
     char curr_num;
@@ -165,7 +216,7 @@ string subtraction(string x, string y){
         }
     }
 
-    if(isSigned){
+    if((isSigned && !double_negative) || (!isSigned && double_negative)){
         result.push_back('-');
     }
 
@@ -177,6 +228,23 @@ string multiplication(string x, string y) {
     short op1, op2, local_res;
     short carry = 0;
     stack<string> results;
+    bool isSigned = false;
+
+    if((x.at(0) == '-') != (y.at(0) == '-')){
+        isSigned = true;
+
+        if(x.at(0) == '-'){
+            x.erase(x.begin());
+        }
+        else{
+            y.erase(y.begin());
+        }
+    }
+    if(x.at(0) == '-' && y.at(0) == '-'){
+        // remove the signs
+        x.erase(x.begin());
+        y.erase(y.begin());
+    }
 
     if(x.length() < y.length() ){
         swap(x, y);
@@ -203,6 +271,9 @@ string multiplication(string x, string y) {
 
     if(results.empty()){
         // single digits multiplication will only have one results element
+        if(isSigned){
+            result.insert(result.begin(), '-');
+        }
         return result;
     }
 
@@ -215,6 +286,10 @@ string multiplication(string x, string y) {
         results.pop();
 
         result = addition(str_op1, result);
+    }
+
+    if(isSigned){
+        result.insert(result.begin(), '-');
     }
 
     return result;
@@ -247,10 +322,11 @@ void calculate(){
 // TODO: Optimization -> when adding or subtracting, remove from the both operands the same amount of zeros from the right side.
 // The same amount of zeros can then be appended to the result string. This will reduce the iterations
 int main(){
-    string input = "874652-8645213";
+    string input = "(2-3)*5+4+(0-2)";
+    int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
-    bool isNum = false;
+    bool is_negative_number = false;
 
     op_prec['['] = 7;
     op_prec['{'] = 6;
@@ -260,11 +336,22 @@ int main(){
     op_prec['+'] = 2;
     op_prec['-'] = 1;
 
-    for (int i = 0; i < input.length(); i++){
+    if(input.at(0) == '-'){
+        is_negative_number = true;
+    }
+
+    for (int i = 0; i < input_len; i++){
         in = input.at(i);
 
-        if(is_num(in)){
-            numbers.push("");
+        if(is_num(in) || is_negative_number){
+            if(is_negative_number){
+                numbers.push("-");
+                i++;
+            }
+            else{
+                numbers.push("");
+            }
+
             char n;
             while(1){
                 try{
@@ -283,6 +370,8 @@ int main(){
                     break;
                 }
             }
+
+            is_negative_number = false;
         }
         else if(!operators.empty()){
             char tos = operators.top();
@@ -298,13 +387,22 @@ int main(){
                     calculate();
                 }
                 operators.push(in);
+                if(i < input_len-1 && input.at(i+1) == '-'){
+                    is_negative_number = true;
+                }
             }
             else {
                 operators.push(in);
+                if(i < input_len-1 && input.at(i+1) == '-'){
+                    is_negative_number = true;
+                }
             }
         }
         else {
             operators.push(in);
+            if(i < input_len-1 && input.at(i+1) == '-'){
+                is_negative_number = true;
+            }
         }
     }
 
@@ -321,7 +419,7 @@ int main(){
             calculate();
         }
     }
-    cout<<"res: "<<numbers.top();
+    cout<<"result: "<<numbers.top();
 
     return 0;
 }
