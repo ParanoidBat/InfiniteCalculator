@@ -15,7 +15,7 @@ stack <string> numbers;
 string subtraction(string x, string y);
 
 bool is_num(char x){
-    return (int)x >= 48 && (int)x <= 57;
+    return (x >= '0' && x <= '9') || x == '.';
 }
 
 bool is_opening_bracket(char in){
@@ -159,6 +159,8 @@ string subtraction(string x, string y){
         double_negative = true;
     }
 
+    cout<<"x: "<<x<<", y: "<<y<<endl;
+
     short op1, op2, local_res;
     string result;
     char curr_num;
@@ -218,6 +220,18 @@ string subtraction(string x, string y){
 
     if((isSigned && !double_negative) || (!isSigned && double_negative)){
         result.push_back('-');
+    }
+
+    int zeros = 0;
+    for(rit i = result.rbegin(); i != result.rend(); i++){
+        if(*i != '0'){
+            break;
+        }
+        zeros++;
+    }
+
+    for(;zeros > 0; zeros--){
+        result.pop_back();
     }
 
     return reverse_string(result);
@@ -295,6 +309,87 @@ string multiplication(string x, string y) {
     return result;
 }
 
+string division(string dividend, string divisor) {
+    string quotient = "0", result = "";
+    bool isSigned = false;
+    bool is_divisor_smaller = true;
+    bool is_fraction = false;
+    short decimal_places = 4;
+
+    if((dividend.at(0) == '-') != (divisor.at(0) == '-')){
+        isSigned = true;
+
+        if(dividend.at(0) == '-'){
+            dividend.erase(dividend.begin());
+        }
+        else{
+            divisor.erase(divisor.begin());
+        }
+    }
+    if(dividend.at(0) == '-' && divisor.at(0) == '-'){
+        dividend.erase(dividend.begin());
+        divisor.erase(divisor.begin());
+    }
+
+    if(dividend.length() < divisor.length()){
+        is_divisor_smaller = false;
+    }
+    if(dividend.length() == divisor.length()){
+        for(size_t i = 0; i < dividend.length(); i++){
+            if(dividend[i] < divisor[i]){
+                is_divisor_smaller = false;
+                break;
+            }
+            if(dividend[i] > divisor[i]){
+                break; // dividend is greater than divisor
+            }
+        }
+    }
+
+    while(!dividend.empty() && decimal_places ){
+        quotient = "0";
+
+        while(is_divisor_smaller ){
+            dividend = subtraction(dividend, divisor);
+            quotient = addition(quotient, "1");
+
+            cout<<"dividend: "<<dividend<<", divisor: "<<divisor<<endl;
+
+            if(dividend.empty()){
+                break;
+            }
+
+            if(dividend.length() < divisor.length()){
+                is_divisor_smaller = false;
+            }
+            if(dividend.length() == divisor.length()){
+                for(size_t i = 0; i < dividend.length(); i++){
+                    if(dividend[i] < divisor[i]){
+                        is_divisor_smaller = false;
+                        break;
+                    }
+                    if(dividend[i] > divisor[i]){
+                        break; // dividend is greater than divisor
+                    }
+                }
+            }
+        }
+
+        if(dividend.empty() || !decimal_places){
+            continue; // will essentially break the parent while loop
+        }
+
+        // Attach a . in quotient and append four 0s with dividend
+        result = quotient + ".";
+        is_fraction = true;
+        is_divisor_smaller = true;
+        dividend.append(4,'0');
+        continue;
+    }
+
+    return result+quotient;
+}
+
 void calculate(){
     string operand2 = numbers.top();
     numbers.pop();
@@ -313,6 +408,9 @@ void calculate(){
     case '-':
         res = subtraction(operand1, operand2);
         break;
+    case '/':
+        res = division(operand1, operand2);
+        break;
     }
 
     numbers.push(res);
@@ -322,7 +420,7 @@ void calculate(){
 // TODO: Optimization -> when adding or subtracting, remove from the both operands the same amount of zeros from the right side.
 // The same amount of zeros can then be appended to the result string. This will reduce the iterations
 int main(){
-    string input = "(2-3)*5+4+(0-2)";
+    string input = "550/21";
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
