@@ -92,8 +92,48 @@ void validate_dividend(string dividend, string divisor, bool& is_divisor_smaller
     }
 }
 
+string addition_lower_decimal(string x, string y, bool& carry){
+    if(x.empty()){
+        carry = false;
+        return y;
+    }
+    if(y.empty()){
+        carry = false;
+        return x;
+    }
+
+    string result = "";
+    short op1, op2, local_res;
+
+    if(x.length() < y.length() ){
+        swap(x, y);
+    }
+
+    for(rit ix = x.rbegin(), iy = y.rbegin(); ix != x.rend(); ix++, iy++ ){
+        if (iy >= y.rend()){
+            op1 = (short)(*ix - 48);
+
+            local_res = op1 + carry;
+            result.push_back(handle_carry_result(local_res, carry));
+        }
+        else{
+            op1 = (short)(*ix - 48);
+            op2 = (short)(*iy - 48);
+
+            local_res = op1 + op2 + carry;
+            result.push_back(handle_carry_result(local_res, carry));
+        }
+    }
+
+    return reverse_string(result);
+}
+
 string addition(string x, string y) {
     bool isSigned = false;
+    string decimal_result = "";
+    bool carry = false;
+    string result = "";
+    short op1, op2, local_res;
 
     if((x.at(0) == '-') != (y.at(0) == '-')){
         if(x.at(0) == '-'){
@@ -114,9 +154,29 @@ string addition(string x, string y) {
         y.erase(y.begin());
     }
 
-    bool carry = false;
-    string result = "";
-    short op1, op2, local_res;
+    // check if decimal/s exist
+    const size_t x_decimal = x.find('.');
+    const size_t y_decimal = y.find('.');
+    string x_lower_decimal, y_lower_decimal;
+
+    if (x_decimal != string::npos || y_decimal != string::npos){
+        if(x_decimal != string::npos){
+            x_lower_decimal = x.substr(x_decimal+1, x.length()-1);
+            x = x.substr(0, x_decimal);
+        }
+        else {
+            x_lower_decimal = "";
+        }
+
+        if(y_decimal != string::npos){
+            y_lower_decimal = y.substr(y_decimal+1, y.length()-1);
+            y = y.substr(0, y_decimal);
+        }
+        else{
+            y_lower_decimal = "";
+        }
+        decimal_result = addition_lower_decimal(x_lower_decimal, y_lower_decimal, carry);
+    }
 
     if(x.length() < y.length() ){
         swap(x, y);
@@ -146,7 +206,7 @@ string addition(string x, string y) {
         result.push_back('-');
     }
 
-    return reverse_string(result);
+    return decimal_result.empty() ? reverse_string(result) : reverse_string(result)+"."+decimal_result;
 }
 
 string subtraction(string x, string y){
@@ -455,7 +515,7 @@ void calculate(){
 // TODO: Optimization -> when adding or subtracting, remove from the both operands the same amount of zeros from the right side.
 // The same amount of zeros can then be appended to the result string. This will reduce the iterations
 int main(){
-    string input = "21/-550";
+    string input = "0.95+0.95";
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
