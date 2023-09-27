@@ -382,6 +382,20 @@ string multiplication(string x, string y) {
     stack<string> results;
     bool isSigned = false;
 
+    int decimal_places = 0;
+    int x_dec = x.find('.');
+    int y_dec = y.find('.');
+
+    if(x_dec != string::npos){
+        decimal_places += x.length() - 1 - x_dec;
+        x.erase(x.begin() + x_dec);
+    }
+    if(y_dec != string::npos){
+        decimal_places += y.length() - 1 - y_dec;
+        y.erase(y.begin() + y_dec);
+    }
+
+
     if((x.at(0) == '-') != (y.at(0) == '-')){
         isSigned = true;
 
@@ -443,10 +457,16 @@ string multiplication(string x, string y) {
     if(isSigned){
         result.insert(result.begin(), '-');
     }
+    if(decimal_places){
+        string::iterator it= result.end();
+
+        result.insert(result.end() - decimal_places, '.');
+    }
 
     return result;
 }
 
+// TODO: Handle divide by 0 case
 string division(string dividend, string divisor) {
     string quotient = "0", result = "";
     bool isSigned = false;
@@ -580,7 +600,7 @@ void calculate(){
 // TODO: Clean the results of fraction operations; for results that have only zeros after decimal(2.0000),
 // The decimal should be removed before pushing on the stack
 int main(){
-    string input = "0.15-0.0";
+    string input = ".5*5.5";
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
