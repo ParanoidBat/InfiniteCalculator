@@ -209,9 +209,58 @@ string addition(string x, string y) {
     return decimal_result.empty() ? reverse_string(result) : reverse_string(result)+"."+decimal_result;
 }
 
+int balance_fraction(string& x, string& y){
+    const size_t x_decimal = x.find('.');
+    const size_t y_decimal = y.find('.');
+    int decimal_places;
+
+    if(x_decimal == string::npos && y_decimal == string::npos) return 0; // None of them is a fraction
+
+    // One of them is a fraction, the other is not. Make the other a fraction too
+    if(x_decimal == string::npos && y_decimal != string::npos){
+        decimal_places = y.length() - 1 - y_decimal;
+        x.push_back('.');
+        x.append(decimal_places, '0');
+
+        return decimal_places;
+    }
+    if(x_decimal != string::npos && y_decimal == string::npos){
+        decimal_places = x.length() - 1 - x_decimal;
+        y.push_back('.');
+        y.append(decimal_places, '0');
+
+        return decimal_places;
+    }
+
+    // Both are fractions. Check if decimal places are equal
+    int dec_places_x = x.length() - 1 - x_decimal;
+    int dec_places_y = y.length() - 1 - y_decimal;
+
+    if(dec_places_x > dec_places_y){
+        decimal_places = dec_places_x;
+        y.append(dec_places_x - dec_places_y, '0');
+
+        return decimal_places;
+    }
+    else if(dec_places_x < dec_places_y){
+        decimal_places = dec_places_y;
+        x.append(dec_places_y - dec_places_x, '0');
+
+        return decimal_places;
+    }
+    else{
+        return dec_places_x;
+    }
+}
+
 string subtraction(string x, string y){
     bool isSigned = false;
     bool double_negative = false;
+    short op1, op2, local_res;
+    string result;
+    char curr_num;
+
+    int decimal_places = balance_fraction(x, y);
 
     if((x.at(0) == '-') != (y.at(0) == '-')){
         if(x.at(0) == '-'){
@@ -223,6 +272,7 @@ string subtraction(string x, string y){
         }
 
         string res = addition(x, y);
+
         if(isSigned){
             res.insert(res.begin(), '-');
         }
@@ -236,9 +286,11 @@ string subtraction(string x, string y){
         double_negative = true;
     }
 
-    short op1, op2, local_res;
-    string result;
-    char curr_num;
+    if(decimal_places){
+        // remove the decimals
+        x.erase(x.end() - (decimal_places+1));
+        y.erase(y.end() - (decimal_places+1));
+    }
 
     if(x.length() < y.length()){
         swap(x, y);
@@ -293,10 +345,7 @@ string subtraction(string x, string y){
         }
     }
 
-    if((isSigned && !double_negative) || (!isSigned && double_negative)){
-        result.push_back('-');
-    }
-
+    // Remove trailing zeros
     int zeros = 0;
     for(rit i = result.rbegin(); i != result.rend(); i++){
         if(*i != '0'){
@@ -304,12 +353,26 @@ string subtraction(string x, string y){
         }
         zeros++;
     }
-
     for(;zeros > 0; zeros--){
         result.pop_back();
     }
 
-    return reverse_string(result);
+    if (result.empty()){
+        return "0";
+    }
+
+    if((isSigned && !double_negative) || (!isSigned && double_negative)){
+        result.push_back('-');
+    }
+    string r_str = reverse_string(result);
+
+    if(decimal_places){
+        string::iterator it= r_str.end();
+
+        r_str.insert(r_str.end() - decimal_places, '.');
+    }
+
+    return r_str;
 }
 
 string multiplication(string x, string y) {
@@ -514,8 +577,10 @@ void calculate(){
 
 // TODO: Optimization -> when adding or subtracting, remove from the both operands the same amount of zeros from the right side.
 // The same amount of zeros can then be appended to the result string. This will reduce the iterations
+// TODO: Clean the results of fraction operations; for results that have only zeros after decimal(2.0000),
+// The decimal should be removed before pushing on the stack
 int main(){
-    string input = "0.95+0.95";
+    string input = "0.15-0.0";
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
