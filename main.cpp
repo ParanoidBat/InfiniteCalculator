@@ -491,25 +491,26 @@ string division(string dividend, string divisor) {
 
     validate_dividend(dividend, divisor, is_divisor_smaller);
 
-    while(!dividend.empty() && decimal_places ){
+    while(dividend != "0" && decimal_places ){
         quotient = "0";
 
         while(is_divisor_smaller ){
             dividend = subtraction(dividend, divisor);
             quotient = addition(quotient, "1");
 
-            if(dividend.empty()){
+            if(dividend == "0"){
                 break;
             }
 
             validate_dividend(dividend, divisor, is_divisor_smaller);
         }
 
-        if(dividend.empty()){
+        result = quotient;
+
+        if(dividend == "0"){
             continue; // will essentially break the parent while loop
         }
 
-        // Attach a . in quotient and append four 0s with dividend
         result = quotient + ".";
         is_fraction = true;
 
@@ -600,7 +601,7 @@ void calculate(){
 // TODO: Clean the results of fraction operations; for results that have only zeros after decimal(2.0000),
 // The decimal should be removed before pushing on the stack
 int main(){
-    string input = ".5*5.5";
+    string input = "5/5";
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
