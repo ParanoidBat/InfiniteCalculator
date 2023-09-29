@@ -8,11 +8,51 @@ using namespace std;
 
 typedef string::reverse_iterator rit;
 
+struct Decimals {
+    size_t x_pos, y_pos;
+    size_t x_len, y_len;
+    size_t dec_places_x, dec_places_y;
+    size_t larger;
+
+    Decimals() {}
+
+    Decimals(size_t x_pos, size_t y_pos, size_t x_len, size_t y_len){
+        this->x_pos = x_pos;
+        this->y_pos = y_pos;
+        this->x_len = x_len;
+        this->y_len = y_len;
+
+        dec_places_x = x_len-x_pos-1;
+        dec_places_y = y_len-y_pos-1;
+
+        larger = (dec_places_x > dec_places_y) ? dec_places_x : dec_places_y;
+    }
+
+    Decimals& operator=(const Decimals& decimals){
+        x_pos = decimals.x_pos;
+        y_pos = decimals.y_pos;
+        x_len = decimals.x_len;
+        y_len = decimals.y_len;
+
+        dec_places_x = decimals.dec_places_x;
+        dec_places_y = decimals.dec_places_y;
+        larger = decimals.larger;
+
+        return *this;
+    }
+
+    void print(){
+        cout<<"x_pos: "<<x_pos <<", y_pos: "<<y_pos<<endl;
+        cout<<"x_len: "<<x_len <<", y_len: "<<y_len<<endl;
+        cout<<"dec_palces_x: "<<dec_places_x<<", dec_places_y: "<<dec_places_y<<endl;
+    }
+};
+
 stack <char> operators;
 stack <string> numbers;
 // TODO: shrink to fit each string after the whole number has been read
 
-string subtraction(string x, string y);
+string subtraction(string x, string y, bool from_div = false);
 
 bool is_num(char x){
     return (x >= '0' && x <= '9') || x == '.';
@@ -253,14 +293,30 @@ int balance_fraction(string& x, string& y){
     }
 }
 
-string subtraction(string x, string y){
+Decimals get_decimal_positions(string x, string y){
+    const size_t x_decimal = x.find('.');
+    const size_t y_decimal = y.find('.');
+
+    return Decimals(x_decimal, y_decimal, x.length(), y.length());
+}
+
+string subtraction(string x, string y, bool from_div){
     bool isSigned = false;
     bool double_negative = false;
     short op1, op2, local_res;
     string result;
     char curr_num;
+    int decimal_places = 0;
+    Decimals decimals;
 
-    int decimal_places = balance_fraction(x, y);
+    if(from_div){
+        decimals = get_decimal_positions(x, y);
+        decimals.print();
+    }
+    else{
+       decimal_places = balance_fraction(x, y);
+    }
+
 
     if((x.at(0) == '-') != (y.at(0) == '-')){
         if(x.at(0) == '-'){
@@ -286,19 +342,30 @@ string subtraction(string x, string y){
         double_negative = true;
     }
 
+    cout<<"before removing decimals. x: "<<x<<", y: "<<y<<endl;
+
+    // remove the decimals
     if(decimal_places){
-        // remove the decimals
         x.erase(x.end() - (decimal_places+1));
         y.erase(y.end() - (decimal_places+1));
     }
+    else if (from_div){
+        x.erase(x.begin() + decimals.x_pos);
+        y.erase(y.begin() + decimals.y_pos);
+    }
+
+    cout<<"after removing decimals. x: "<<x<<", y: "<<y<<endl;
 
     if(x.length() < y.length()){
+        cout<<"swap by length\n";
         swap(x, y);
         isSigned = true;
     }
+
     if(x.length() == y.length()){
         for(size_t i = 0; i < x.length(); i++){
             if(x[i] < y[i]){
+                cout<<"swap by digit\n";
                 swap(x,y);
                 isSigned = true;
                 break;
@@ -308,6 +375,8 @@ string subtraction(string x, string y){
             }
         }
     }
+
+    cout<<"after swapping. x: "<<x<<", y: "<<y<<endl;
 
     for(rit ix = x.rbegin(), iy = y.rbegin(); ix != x.rend(); ix++, iy++){
         if(iy >= y.rend()){
@@ -368,8 +437,11 @@ string subtraction(string x, string y){
 
     if(decimal_places){
         string::iterator it= r_str.end();
-
         r_str.insert(r_str.end() - decimal_places, '.');
+    }
+    else if(from_div){
+        string::iterator it= r_str.end();
+        r_str.insert(r_str.end() - decimals.larger, '.');
     }
 
     return r_str;
@@ -471,7 +543,6 @@ string division(string dividend, string divisor) {
     string quotient = "0", result = "";
     bool isSigned = false;
     bool is_divisor_smaller = true;
-    bool is_fraction = false;
     short decimal_places = 4;
 
     if((dividend.at(0) == '-') != (divisor.at(0) == '-')){
@@ -512,19 +583,25 @@ string division(string dividend, string divisor) {
         }
 
         result = quotient + ".";
-        is_fraction = true;
+
+        cout<<"result(before going in 2nd while): "<<result<<endl;
 
         while(decimal_places){
+            cout<<"decimal places left: "<<decimal_places<<endl;
             decimal_places--;
             quotient = "0";
             dividend.push_back('0');
             is_divisor_smaller = true;
 
+            cout<<"dividend: "<<dividend<<", divisor: "<<divisor<<endl;
+
             if(dividend.length() < divisor.length()){
+                cout<<"dividend is less than divisor\n";
                 is_divisor_smaller = false;
                 continue;
             }
             if(dividend.length() == divisor.length()){
+                cout<<"dividend is equal to divisor\n";
                 for(size_t i = 0; i < dividend.length(); i++){
                     if(dividend[i] < divisor[i]){
                         is_divisor_smaller = false;
@@ -536,28 +613,25 @@ string division(string dividend, string divisor) {
                 }
             }
 
+            cout<<"(before nested while loop). dividend: "<<dividend<<", divisor: "<<divisor<<endl;
+
             while(is_divisor_smaller){
-                dividend = subtraction(dividend, divisor);
+                dividend = subtraction(dividend, divisor, true);
                 quotient = addition(quotient, "1");
 
+            cout<<"(in nested while loop). dividend: "<<dividend<<", quotient: "<<quotient<<endl;
+
+                if(dividend == "0"){
+                    break;
+                }
                 if(dividend.length() < divisor.length()){
+                    cout<<"dividend length is less\n";
                     is_divisor_smaller = false;
                     continue;
                 }
-                if(dividend.length() == divisor.length()){
-                    for(size_t i = 0; i < dividend.length(); i++){
-                        if(dividend[i] < divisor[i]){
-                            is_divisor_smaller = false;
-                            break;
-                        }
-                        if(dividend[i] > divisor[i]){
-                            break;
-                        }
-                    }
-                }
             }
             result += quotient;
-            if(dividend.empty()){
+            if(dividend == "0"){
                 break;
             }
         }
@@ -601,7 +675,7 @@ void calculate(){
 // TODO: Clean the results of fraction operations; for results that have only zeros after decimal(2.0000),
 // The decimal should be removed before pushing on the stack
 int main(){
-    string input = "5/5";
+    string input = "1/3";
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
