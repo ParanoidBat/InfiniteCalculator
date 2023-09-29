@@ -586,6 +586,17 @@ string division(string dividend, string divisor) {
 
         cout<<"result(before going in 2nd while): "<<result<<endl;
 
+        cout<<"before decimals. dividend: "<<dividend<<", divisor: "<<divisor<<endl;
+        // Put decimals on dividend and divisor before doing fraction division
+        if(dividend.find('.') == string::npos){
+            dividend.push_back('.');
+        }
+        if(divisor.find('.') == string::npos){
+            divisor.append(".0");
+        }
+        cout<<"after decimals. dividend: "<<dividend<<", divisor: "<<divisor<<endl;
+
+
         while(decimal_places){
             cout<<"decimal places left: "<<decimal_places<<endl;
             decimal_places--;
@@ -628,6 +639,22 @@ string division(string dividend, string divisor) {
                     cout<<"dividend length is less\n";
                     is_divisor_smaller = false;
                     continue;
+                }
+                if(dividend.length() == divisor.length()){
+                    cout<<"dividend is equal to divisor\n";
+                    for(size_t i = 0, j = 0; i < dividend.length(); i++, j++){
+                        if(dividend[i] == '.'){
+                            j--;
+                            continue;
+                        }
+                        if(dividend[i] < divisor[j]){
+                            is_divisor_smaller = false;
+                            break;
+                        }
+                        if(dividend[i] > divisor[j]){
+                            break; // dividend is greater than divisor
+                        }
+                    }
                 }
             }
             result += quotient;
