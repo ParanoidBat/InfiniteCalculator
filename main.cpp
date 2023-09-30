@@ -635,16 +635,30 @@ string division(string dividend, string divisor){
             equality = get_divisor_equality(dividend, divisor);
         }
 
-        while((equality == IS_LESS || equality == IS_EQUAL) && decimal_places <= MAX_DECIMAL_PLACES){
-            quotient = addition(quotient, "1");
-            dividend = subtraction_for_division(dividend, divisor);
+        cout<<"dividend: "<<dividend<<", equality: "<<equality<<endl;
 
+        while(decimal_places <= MAX_DECIMAL_PLACES){
+            quotient = "0";
             equality = get_divisor_equality(dividend, divisor);
-            decimal_places++;
-            cout<<"dividend: "<<dividend<<", quotient: "<<quotient<<endl;
-        }
+            cout<<"\ndecimal_places: "<<decimal_places<<", equality: "<<equality<<endl;
 
-        result += quotient;
+            while(equality == IS_LESS || equality == IS_EQUAL){
+                quotient = addition(quotient, "1");
+                dividend = subtraction_for_division(dividend, divisor);
+
+                equality = get_divisor_equality(dividend, divisor);
+                cout<<"dividend: "<<dividend<<", quotient: "<<quotient<<endl;
+            }
+
+            result += quotient;
+
+            if(dividend == "0"){
+                break;
+            }
+
+            dividend.push_back('0');
+            decimal_places++;
+        }
     }
 
     return result;
@@ -682,7 +696,7 @@ void calculate(){
 // TODO: Clean the results of fraction operations; for results that have only zeros after decimal(2.0000),
 // The decimal should be removed before pushing on the stack
 int main(){
-    string input = "500/25";
+    string input = "10/30";
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
