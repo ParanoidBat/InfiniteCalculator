@@ -558,14 +558,46 @@ string subtraction_for_division(string dividend, string divisor){
     return reverse_string(result);
 }
 
+bool is_divisor_fraction(string divisor){
+    return divisor.find('.') != string::npos;
+}
+
+void handle_fraction_divisor(string& divisor, string& dividend){
+    size_t dec_pos_divisor = divisor.find('.');
+    size_t dec_pos_dividend = dividend.find('.');
+    size_t dec_places = divisor.length() - dec_pos_divisor - 1;
+
+    if(dec_pos_dividend != string::npos){
+        dividend.erase(dec_pos_dividend, 1);
+
+        size_t new_dec_pos = dec_pos_dividend + dec_places;
+        if(new_dec_pos > dividend.length()){
+            dividend.append(new_dec_pos - dividend.length() - 1, '0');
+        }
+        else if(new_dec_pos < dividend.length()){
+            dividend.insert(dividend.end() - new_dec_pos, '.');
+        }
+    }
+    else{
+        dividend.append(dec_places, '0');
+    }
+
+    divisor.erase(dec_pos_divisor, 1);
+}
+
 string division(string dividend, string divisor){
     string quotient = "0";
     string result;
     string decimal_part = "";
     bool quotient_has_decimal = false;
 
-    size_t dividend_decimal_pos = dividend.find('.');
+    if(is_divisor_fraction(divisor)){
+        handle_fraction_divisor(divisor, dividend);
+    }
 
+//    cout<<"divisor: "<<divisor<<", dividend: "<<dividend<<endl;
+
+    size_t dividend_decimal_pos = dividend.find('.');
     if(dividend_decimal_pos != string::npos){
         decimal_part = reverse_string(dividend.substr(dividend_decimal_pos +1 ));
         dividend.erase(dividend_decimal_pos);
@@ -659,15 +691,20 @@ string division(string dividend, string divisor){
     }
 
     if(dividend != "0" && equality == IS_GREATER){
+//        cout<<"dividend: "<<dividend<<", equality: "<<equality<<", going to put zeros\n";
+
         short decimal_places = 1;
         result.push_back('.');
+        dividend.push_back('0');
         quotient = "";
 
+        equality = get_divisor_equality(dividend, divisor);
         while(equality == IS_GREATER){
             dividend.push_back('0');
-            quotient.push_back('0');
+            result.push_back('0');
 
             equality = get_divisor_equality(dividend, divisor);
+//            cout<<"dividend: "<<dividend<<", equality: "<<equality<<endl;
         }
 
         while(decimal_places <= MAX_DECIMAL_PLACES){
@@ -727,10 +764,10 @@ void calculate(){
 // TODO: Clean the results of fraction operations; for results that have only zeros after decimal(2.0000),
 // The decimal should be removed before pushing on the stack
 
-string inputs[] = {"10/5", "5/10", "1/3", "1.0/3", "1.2254/3", "19.26/4", "192.568/11"};
+string inputs[] = {"100/1.8", "1.1/1.82", "12.23/6.11", "10/5", "5/10", "1/3", "1.0/3", "1.2254/3", "19.26/4", "192.568/11"};
 
 int main(){
-    string input = inputs[6];
+    string input = inputs[1];
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
