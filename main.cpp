@@ -16,8 +16,6 @@ enum Equality {IS_LESS, IS_EQUAL, IS_GREATER};
 stack <char> operators;
 stack <string> numbers;
 
-// TODO: shrink to fit each string after the whole number has been read
-
 string subtraction(string x, string y);
 
 bool is_num(char x){
@@ -755,6 +753,7 @@ void calculate(){
         break;
     }
 
+    res.shrink_to_fit();
     numbers.push(res);
     operators.pop();
 }
