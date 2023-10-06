@@ -3,6 +3,7 @@
 #include <string>
 #include <stdexcept>
 #include <unordered_map>
+#include <regex>
 
 #define MAX_DECIMAL_PLACES 10
 
@@ -15,6 +16,8 @@ enum Equality {IS_LESS, IS_EQUAL, IS_GREATER};
 
 stack <char> operators;
 stack <string> numbers;
+regex rgx("\\.0*$"); // decimal point and only zeros after it. (eg: 22.00)
+smatch matcher;
 
 string subtraction(string x, string y);
 
@@ -753,20 +756,27 @@ void calculate(){
         break;
     }
 
+    // clean the result string
+    if(regex_search(res, matcher, rgx)){
+        size_t dec_pos = res.find('.');
+
+        if(res.length() - dec_pos == matcher[0].length()){
+            res.erase(dec_pos);
+        }
+    }
     res.shrink_to_fit();
+
     numbers.push(res);
     operators.pop();
 }
 
 // TODO: Optimization -> when adding or subtracting, remove from the both operands the same amount of zeros from the right side.
 // The same amount of zeros can then be appended to the result string. This will reduce the iterations
-// TODO: Clean the results of fraction operations; for results that have only zeros after decimal(2.0000),
-// The decimal should be removed before pushing on the stack
 
 string inputs[] = {"100/1.8", "1.1/1.82", "12.23/6.11", "10/5", "5/10", "1/3", "1.0/3", "1.2254/3", "19.26/4", "192.568/11"};
 
 int main(){
-    string input = inputs[1];
+    string input = "22.0+15.1";
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
