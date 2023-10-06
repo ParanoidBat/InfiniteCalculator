@@ -21,6 +21,27 @@ smatch matcher;
 
 string subtraction(string x, string y);
 
+Equality get_divisor_equality(string dividend, string divisor){
+    if(divisor.length() > dividend.length()){
+        return IS_GREATER;
+    }
+    if(divisor.length() < dividend.length()){
+        return IS_LESS;
+    }
+
+    // The length is equal. Check for digits equality
+    for(it i_dividend = dividend.begin(), i_divisor = divisor.begin(); i_divisor != divisor.end(); i_dividend++, i_divisor++){
+        if(*i_divisor < *i_dividend){
+            return IS_LESS;
+        }
+        if(*i_divisor > *i_dividend){
+            return IS_GREATER;
+        }
+    }
+
+    return IS_EQUAL;
+}
+
 bool is_num(char x){
     return (x >= '0' && x <= '9') || x == '.';
 }
@@ -33,6 +54,10 @@ bool is_closing_bracket(char in){
     return in == ')' || in == '}' || in == ']';
 }
 
+bool is_divisor_fraction(string divisor){
+    return divisor.find('.') != string::npos;
+}
+
 char get_opening_bracket(char in){
     switch(in){
     case ')':
@@ -42,15 +67,6 @@ char get_opening_bracket(char in){
     case ']':
         return '[';
     }
-}
-
-string reverse_string(string str) {
-    string rev_str = "";
-    for(rit i = str.rbegin(); i != str.rend(); i++){
-        rev_str.push_back(*i);
-    }
-
-    return rev_str;
 }
 
 char handle_carry_result(short res, bool& carry){
@@ -82,6 +98,50 @@ char handle_carry_result(short res, short& carry){
     return char_res;
 }
 
+int balance_fraction(string& x, string& y){
+    const size_t x_decimal = x.find('.');
+    const size_t y_decimal = y.find('.');
+    int decimal_places;
+
+    if(x_decimal == string::npos && y_decimal == string::npos) return 0; // None of them is a fraction
+
+    // One of them is a fraction, the other is not. Make the other a fraction too
+    if(x_decimal == string::npos && y_decimal != string::npos){
+        decimal_places = y.length() - 1 - y_decimal;
+        x.push_back('.');
+        x.append(decimal_places, '0');
+
+        return decimal_places;
+    }
+    if(x_decimal != string::npos && y_decimal == string::npos){
+        decimal_places = x.length() - 1 - x_decimal;
+        y.push_back('.');
+        y.append(decimal_places, '0');
+
+        return decimal_places;
+    }
+
+    // Both are fractions. Check if decimal places are equal
+    int dec_places_x = x.length() - 1 - x_decimal;
+    int dec_places_y = y.length() - 1 - y_decimal;
+
+    if(dec_places_x > dec_places_y){
+        decimal_places = dec_places_x;
+        y.append(dec_places_x - dec_places_y, '0');
+
+        return decimal_places;
+    }
+    else if(dec_places_x < dec_places_y){
+        decimal_places = dec_places_y;
+        x.append(dec_places_y - dec_places_x, '0');
+
+        return decimal_places;
+    }
+    else{
+        return dec_places_x;
+    }
+}
+
 void validate_dividend(string dividend, string divisor, bool& is_divisor_smaller){
     if(dividend.length() < divisor.length()){
         is_divisor_smaller = false;
@@ -97,6 +157,38 @@ void validate_dividend(string dividend, string divisor, bool& is_divisor_smaller
             }
         }
     }
+}
+
+void handle_fraction_divisor(string& divisor, string& dividend){
+    size_t dec_pos_divisor = divisor.find('.');
+    size_t dec_pos_dividend = dividend.find('.');
+    size_t dec_places = divisor.length() - dec_pos_divisor - 1;
+
+    if(dec_pos_dividend != string::npos){
+        dividend.erase(dec_pos_dividend, 1);
+
+        size_t new_dec_pos = dec_pos_dividend + dec_places;
+        if(new_dec_pos > dividend.length()){
+            dividend.append(new_dec_pos - dividend.length() - 1, '0');
+        }
+        else if(new_dec_pos < dividend.length()){
+            dividend.insert(dividend.end() - new_dec_pos, '.');
+        }
+    }
+    else{
+        dividend.append(dec_places, '0');
+    }
+
+    divisor.erase(dec_pos_divisor, 1);
+}
+
+string reverse_string(string str) {
+    string rev_str = "";
+    for(rit i = str.rbegin(); i != str.rend(); i++){
+        rev_str.push_back(*i);
+    }
+
+    return rev_str;
 }
 
 string addition_lower_decimal(string x, string y, bool& carry){
@@ -128,6 +220,70 @@ string addition_lower_decimal(string x, string y, bool& carry){
             local_res = op1 + op2 + carry;
             result.push_back(handle_carry_result(local_res, carry));
         }
+    }
+
+    return reverse_string(result);
+}
+
+string subtraction_for_division(string dividend, string divisor){
+    short op1, op2, local_res;
+    string result;
+    char curr_num;
+
+    for(rit i_dividend = dividend.rbegin(), i_divisor = divisor.rbegin(); i_dividend != dividend.rend(); i_dividend++, i_divisor++){
+        if(i_divisor >= divisor.rend()){
+            result.push_back(*i_dividend);
+        }
+        else{
+            op1 = (short)(*i_dividend - 48);
+            op2 = (short)(*i_divisor - 48);
+
+            if(op1 < op2){
+                // borrow
+                int units = 1; // number of digits traversed back to get a borrow
+                do {
+                    curr_num = *(i_dividend+units);
+                    units++;
+                }
+                while(curr_num == '0');
+
+                units--; // the position of the first non-zero character encountered
+                *(i_dividend+units) -= 1; // subtract 1 from the borrowed number
+                units--;
+
+                for(; units > 0; units--){
+                    // replace all the zeros we came across, with 9
+                    *(i_dividend+units) = '9';
+                }
+
+                op1 = 10 + op1;
+            }
+
+            local_res = op1 - op2;
+
+            if(local_res < 0){
+                break;
+            }
+
+            char char_res = (char)(local_res + 48);
+            result.push_back(char_res);
+        }
+    }
+
+    // Remove trailing zeros
+    int zeros = 0;
+    for(rit i = result.rbegin(); i != result.rend(); i++){
+        if(*i != '0'){
+            break;
+        }
+        zeros++;
+    }
+    for(;zeros > 0; zeros--){
+        result.pop_back();
+    }
+
+    if (result.empty()){
+        return "0";
     }
 
     return reverse_string(result);
@@ -212,50 +368,6 @@ string addition(string x, string y) {
     }
 
     return decimal_result.empty() ? reverse_string(result) : reverse_string(result)+"."+decimal_result;
-}
-
-int balance_fraction(string& x, string& y){
-    const size_t x_decimal = x.find('.');
-    const size_t y_decimal = y.find('.');
-    int decimal_places;
-
-    if(x_decimal == string::npos && y_decimal == string::npos) return 0; // None of them is a fraction
-
-    // One of them is a fraction, the other is not. Make the other a fraction too
-    if(x_decimal == string::npos && y_decimal != string::npos){
-        decimal_places = y.length() - 1 - y_decimal;
-        x.push_back('.');
-        x.append(decimal_places, '0');
-
-        return decimal_places;
-    }
-    if(x_decimal != string::npos && y_decimal == string::npos){
-        decimal_places = x.length() - 1 - x_decimal;
-        y.push_back('.');
-        y.append(decimal_places, '0');
-
-        return decimal_places;
-    }
-
-    // Both are fractions. Check if decimal places are equal
-    int dec_places_x = x.length() - 1 - x_decimal;
-    int dec_places_y = y.length() - 1 - y_decimal;
-
-    if(dec_places_x > dec_places_y){
-        decimal_places = dec_places_x;
-        y.append(dec_places_x - dec_places_y, '0');
-
-        return decimal_places;
-    }
-    else if(dec_places_x < dec_places_y){
-        decimal_places = dec_places_y;
-        x.append(dec_places_y - dec_places_x, '0');
-
-        return decimal_places;
-    }
-    else{
-        return dec_places_x;
-    }
 }
 
 string subtraction(string x, string y){
@@ -472,118 +584,6 @@ string multiplication(string x, string y) {
     return result;
 }
 
-Equality get_divisor_equality(string dividend, string divisor){
-    if(divisor.length() > dividend.length()){
-        return IS_GREATER;
-    }
-    if(divisor.length() < dividend.length()){
-        return IS_LESS;
-    }
-
-    // The length is equal. Check for digits equality
-    for(it i_dividend = dividend.begin(), i_divisor = divisor.begin(); i_divisor != divisor.end(); i_dividend++, i_divisor++){
-        if(*i_divisor < *i_dividend){
-            return IS_LESS;
-        }
-        if(*i_divisor > *i_dividend){
-            return IS_GREATER;
-        }
-    }
-
-    return IS_EQUAL;
-}
-
-string subtraction_for_division(string dividend, string divisor){
-    short op1, op2, local_res;
-    string result;
-    char curr_num;
-
-    for(rit i_dividend = dividend.rbegin(), i_divisor = divisor.rbegin(); i_dividend != dividend.rend(); i_dividend++, i_divisor++){
-        if(i_divisor >= divisor.rend()){
-            result.push_back(*i_dividend);
-        }
-        else{
-            op1 = (short)(*i_dividend - 48);
-            op2 = (short)(*i_divisor - 48);
-
-            if(op1 < op2){
-                // borrow
-                int units = 1; // number of digits traversed back to get a borrow
-                do {
-                    curr_num = *(i_dividend+units);
-                    units++;
-                }
-                while(curr_num == '0');
-
-                units--; // the position of the first non-zero character encountered
-                *(i_dividend+units) -= 1; // subtract 1 from the borrowed number
-                units--;
-
-                for(; units > 0; units--){
-                    // replace all the zeros we came across, with 9
-                    *(i_dividend+units) = '9';
-                }
-
-                op1 = 10 + op1;
-            }
-
-            local_res = op1 - op2;
-
-            if(local_res < 0){
-                break;
-            }
-
-            char char_res = (char)(local_res + 48);
-            result.push_back(char_res);
-        }
-    }
-
-    // Remove trailing zeros
-    int zeros = 0;
-    for(rit i = result.rbegin(); i != result.rend(); i++){
-        if(*i != '0'){
-            break;
-        }
-        zeros++;
-    }
-    for(;zeros > 0; zeros--){
-        result.pop_back();
-    }
-
-    if (result.empty()){
-        return "0";
-    }
-
-    return reverse_string(result);
-}
-
-bool is_divisor_fraction(string divisor){
-    return divisor.find('.') != string::npos;
-}
-
-void handle_fraction_divisor(string& divisor, string& dividend){
-    size_t dec_pos_divisor = divisor.find('.');
-    size_t dec_pos_dividend = dividend.find('.');
-    size_t dec_places = divisor.length() - dec_pos_divisor - 1;
-
-    if(dec_pos_dividend != string::npos){
-        dividend.erase(dec_pos_dividend, 1);
-
-        size_t new_dec_pos = dec_pos_dividend + dec_places;
-        if(new_dec_pos > dividend.length()){
-            dividend.append(new_dec_pos - dividend.length() - 1, '0');
-        }
-        else if(new_dec_pos < dividend.length()){
-            dividend.insert(dividend.end() - new_dec_pos, '.');
-        }
-    }
-    else{
-        dividend.append(dec_places, '0');
-    }
-
-    divisor.erase(dec_pos_divisor, 1);
-}
-
 string division(string dividend, string divisor){
     string quotient = "0";
     string result;
@@ -763,10 +763,10 @@ void calculate(){
     operators.pop();
 }
 
-string inputs[] = {"0.85+0.3", "0.05+0.3", "100/1.8", "1.1/1.82", "12.23/6.11", "10/5", "5/10", "1/3", "1.0/3", "1.2254/3", "19.26/4", "192.568/11"};
+string inputs[] = {"1.85/1.3", "0.05+0.3", "100/1.8", "1.1/1.82", "12.23/6.11", "10/5", "5/10", "1/3", "1.0/3", "1.2254/3", "19.26/4", "192.568/11"};
 
 int main(){
-    string input = ".33+.85";
+    string input = inputs[3];
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
