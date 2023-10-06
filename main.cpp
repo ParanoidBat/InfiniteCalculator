@@ -116,16 +116,14 @@ string addition_lower_decimal(string x, string y, bool& carry){
         swap(x, y);
     }
 
-    for(rit ix = x.rbegin(), iy = y.rbegin(); ix != x.rend(); ix++, iy++ ){
-        if (iy >= y.rend()){
-            op1 = (short)(*ix - 48);
-
-            local_res = op1 + carry;
-            result.push_back(handle_carry_result(local_res, carry));
+    int y_len = y.length();
+    for(int i = x.length() - 1; i >= 0; i--){
+        if(i >= y_len){
+            result.push_back(x[i]);
         }
         else{
-            op1 = (short)(*ix - 48);
-            op2 = (short)(*iy - 48);
+            op1 = (short)(x[i] - 48);
+            op2 = (short)(y[i] - 48);
 
             local_res = op1 + op2 + carry;
             result.push_back(handle_carry_result(local_res, carry));
@@ -596,8 +594,6 @@ string division(string dividend, string divisor){
         handle_fraction_divisor(divisor, dividend);
     }
 
-//    cout<<"divisor: "<<divisor<<", dividend: "<<dividend<<endl;
-
     size_t dividend_decimal_pos = dividend.find('.');
     if(dividend_decimal_pos != string::npos){
         decimal_part = reverse_string(dividend.substr(dividend_decimal_pos +1 ));
@@ -692,8 +688,6 @@ string division(string dividend, string divisor){
     }
 
     if(dividend != "0" && equality == IS_GREATER){
-//        cout<<"dividend: "<<dividend<<", equality: "<<equality<<", going to put zeros\n";
-
         short decimal_places = 1;
         result.push_back('.');
         dividend.push_back('0');
@@ -705,7 +699,6 @@ string division(string dividend, string divisor){
             result.push_back('0');
 
             equality = get_divisor_equality(dividend, divisor);
-//            cout<<"dividend: "<<dividend<<", equality: "<<equality<<endl;
         }
 
         while(decimal_places <= MAX_DECIMAL_PLACES){
@@ -770,13 +763,10 @@ void calculate(){
     operators.pop();
 }
 
-// TODO: Optimization -> when adding or subtracting, remove from the both operands the same amount of zeros from the right side.
-// The same amount of zeros can then be appended to the result string. This will reduce the iterations
-
-string inputs[] = {"100/1.8", "1.1/1.82", "12.23/6.11", "10/5", "5/10", "1/3", "1.0/3", "1.2254/3", "19.26/4", "192.568/11"};
+string inputs[] = {"0.85+0.3", "0.05+0.3", "100/1.8", "1.1/1.82", "12.23/6.11", "10/5", "5/10", "1/3", "1.0/3", "1.2254/3", "19.26/4", "192.568/11"};
 
 int main(){
-    string input = "22.0+15.1";
+    string input = ".33+.85";
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
