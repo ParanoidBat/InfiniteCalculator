@@ -624,8 +624,6 @@ string multiplication(string x, string y) {
         result.insert(result.begin(), '-');
     }
     if(decimal_places){
-        string::iterator it= result.end();
-
         result.insert(result.end() - decimal_places, '.');
     }
 
