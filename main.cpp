@@ -160,6 +160,13 @@ void validate_dividend(string dividend, string divisor, bool& is_divisor_smaller
 }
 
 void handle_fraction_divisor(string& divisor, string& dividend){
+    if(divisor[0] == '.'){
+        divisor.insert(0, 1, '0');
+    }
+    if(dividend[0] == '.'){
+        dividend.insert(0, 1, '0');
+    }
+
     size_t dec_pos_divisor = divisor.find('.');
     size_t dec_pos_dividend = dividend.find('.');
     size_t dec_places = divisor.length() - dec_pos_divisor - 1;
@@ -180,6 +187,9 @@ void handle_fraction_divisor(string& divisor, string& dividend){
     }
 
     divisor.erase(dec_pos_divisor, 1);
+    while(divisor[0] == '0'){
+        divisor.erase(0, 1);
+    }
 }
 
 string reverse_string(string str) {
@@ -763,10 +773,10 @@ void calculate(){
     operators.pop();
 }
 
-string inputs[] = {"1.85/1.3", "0.05+0.3", "100/1.8", "1.1/1.82", "12.23/6.11", "10/5", "5/10", "1/3", "1.0/3", "1.2254/3", "19.26/4", "192.568/11"};
+string inputs[] = {"66/.2","1.66/0.567", "1.85/1.3", "0.05+0.3", "100/1.8", "1.1/1.82", "12.23/6.11", "10/5", "5/10", "1/3", "1.0/3", "1.2254/3", "19.26/4", "192.568/11"};
 
 int main(){
-    string input = inputs[3];
+    string input = inputs[13];
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
