@@ -169,10 +169,10 @@ void handle_fraction_divisor(string& divisor, string& dividend){
 
         size_t new_dec_pos = dec_pos_dividend + dec_places;
         if(new_dec_pos > dividend.length()){
-            dividend.append(new_dec_pos - dividend.length() - 1, '0');
+            dividend.append(new_dec_pos - dividend.length(), '0');
         }
         else if(new_dec_pos < dividend.length()){
-            dividend.insert(dividend.end() - new_dec_pos, '.');
+            dividend.insert(dividend.end() - new_dec_pos + 1, '.');
         }
     }
     else{
