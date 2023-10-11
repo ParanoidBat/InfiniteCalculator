@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <regex>
 
-#define MAX_DECIMAL_PLACES 30
+#define MAX_DECIMAL_PLACES 60
 
 using namespace std;
 
@@ -67,6 +67,28 @@ bool is_value_zero(string value){
     return false;
 }
 
+bool is_result_signed(string& x, string &y){
+    bool isSigned = false;
+
+    if((x.at(0) == '-') != (y.at(0) == '-')){
+        isSigned = true;
+
+        if(x.at(0) == '-'){
+            x.erase(x.begin());
+        }
+        else{
+            y.erase(y.begin());
+        }
+    }
+    if(x.at(0) == '-' && y.at(0) == '-'){
+        // remove the signs
+        x.erase(x.begin());
+        y.erase(y.begin());
+    }
+
+    return isSigned;
+}
+
 char get_opening_bracket(char in){
     switch(in){
     case ')':
@@ -107,10 +129,10 @@ char handle_carry_result(short res, short& carry){
     return char_res;
 }
 
-int balance_fraction(string& x, string& y){
+size_t balance_fraction(string& x, string& y){
     const size_t x_decimal = x.find('.');
     const size_t y_decimal = y.find('.');
-    int decimal_places;
+    size_t decimal_places;
 
     if(x_decimal == string::npos && y_decimal == string::npos) return 0; // None of them is a fraction
 
@@ -131,8 +153,8 @@ int balance_fraction(string& x, string& y){
     }
 
     // Both are fractions. Check if decimal places are equal
-    int dec_places_x = x.length() - 1 - x_decimal;
-    int dec_places_y = y.length() - 1 - y_decimal;
+    size_t dec_places_x = x.length() - 1 - x_decimal;
+    size_t dec_places_y = y.length() - 1 - y_decimal;
 
     if(dec_places_x > dec_places_y){
         decimal_places = dec_places_x;
@@ -419,7 +441,7 @@ string subtraction(string x, string y){
     short op1, op2, local_res;
     string result;
     char curr_num;
-    int decimal_places = 0;
+    size_t decimal_places = 0;
 
     decimal_places = balance_fraction(x, y);
 
@@ -541,9 +563,9 @@ string multiplication(string x, string y) {
     short op1, op2, local_res;
     short carry = 0;
     stack<string> results;
-    bool isSigned = false;
-
     int decimal_places = 0;
+
+    bool isSigned = is_result_signed(x, y);
     int x_dec = x.find('.');
     int y_dec = y.find('.');
 
@@ -554,23 +576,6 @@ string multiplication(string x, string y) {
     if(y_dec != string::npos){
         decimal_places += y.length() - 1 - y_dec;
         y.erase(y.begin() + y_dec);
-    }
-
-
-    if((x.at(0) == '-') != (y.at(0) == '-')){
-        isSigned = true;
-
-        if(x.at(0) == '-'){
-            x.erase(x.begin());
-        }
-        else{
-            y.erase(y.begin());
-        }
-    }
-    if(x.at(0) == '-' && y.at(0) == '-'){
-        // remove the signs
-        x.erase(x.begin());
-        y.erase(y.begin());
     }
 
     if(x.length() < y.length() ){
@@ -607,7 +612,7 @@ string multiplication(string x, string y) {
     no_of_results--;
     result.insert(result.end(), no_of_results, '0');
 
-    for( size_t i = no_of_results - 1; !results.empty(); i-- ){
+    for(int i = no_of_results - 1; !results.empty(); i-- ){
         str_op1 = reverse_string(results.top());
         str_op1.insert(str_op1.end(), i, '0'); // pad with zero to emulate the 'x' in manual multiplication
         results.pop();
@@ -628,23 +633,7 @@ string multiplication(string x, string y) {
 }
 
 string division(string dividend, string divisor){
-    bool isSigned = false;
-
-    if((dividend.at(0) == '-') != (divisor.at(0) == '-')){
-        isSigned = true;
-
-        if(dividend.at(0) == '-'){
-            dividend.erase(dividend.begin());
-        }
-        else{
-            divisor.erase(divisor.begin());
-        }
-    }
-    if(dividend.at(0) == '-' && divisor.at(0) == '-'){
-        // remove the signs
-        dividend.erase(dividend.begin());
-        divisor.erase(divisor.begin());
-    }
+    bool isSigned = is_result_signed(dividend, divisor);
 
     if(is_value_zero(divisor)){
         cerr<<"Error: Division by zero!\n";
@@ -832,16 +821,14 @@ void calculate(){
     }
     res.shrink_to_fit();
 
-    cout<<operand1<<" "<<operators.top()<<" "<<operand2<<" = "<<res<<endl;
-
     numbers.push(res);
     operators.pop();
 }
 
-string inputs[] = {"2+5+0.3-18-.001+23*0.5", "2+5+(0.3-18)-(.001+23)*0.5", "2/5-6.001+0.2*0-5+.5/.2", "2/5-6.001+[0.2*{(0-5)+0.5}]/0.2"};
+string inputs[] = {"2+5+0.3-18-.001+23*0.5", "2+5+(0.3-18)-(.001+23)*0.5", "2/5-6.001+0.2*0-5+.5/.2", "2/5-6.001+[0.2*{(0-5)+0.5}]/0.2", "2+[5-3*5/(1-1)]"};
 
 int main(){
-    string input = inputs[3];
+    string input = inputs[1];
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
@@ -926,19 +913,10 @@ int main(){
     }
 
     while (!operators.empty()){
-        // TODO: Check if the following condition can be true. if not; remove condition
-        if (is_closing_bracket(operators.top())){
-            char opening_bracket = get_opening_bracket(operators.top());
-            while (!operators.empty() && operators.top() != opening_bracket){
-                calculate();
-            }
-            operators.pop(); // pop the opening bracket as well
-        }
-        else{
-            calculate();
-        }
+        calculate();
     }
-    cout<<"result: "<<numbers.top();
+
+    cout<<"result:\n"<<numbers.top();
 
     return 0;
 }
