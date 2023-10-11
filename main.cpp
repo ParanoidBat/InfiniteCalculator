@@ -834,7 +834,7 @@ int main(int argc, char* argv[]){
     }
 
     string input = argv[1];
-    int input_len = input.length();
+    size_t input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
     bool is_negative_number = false;
@@ -851,7 +851,7 @@ int main(int argc, char* argv[]){
         is_negative_number = true;
     }
 
-    for (int i = 0; i < input_len; i++){
+    for (size_t i = 0; i < input_len; i++){
         in = input.at(i);
 
         if(is_num(in) || is_negative_number){
