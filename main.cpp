@@ -16,7 +16,8 @@ enum Equality {IS_LESS, IS_EQUAL, IS_GREATER};
 
 stack <char> operators;
 stack <string> numbers;
-regex rgx("\\.0*$"); // decimal point and only zeros after it. (eg: 22.00)
+regex rgx_trailing_zeros("\\.0*$"); // decimal point and only zeros after it. (eg: 22.00)
+regex rgx_zero_value("0*\\.?0*");
 smatch matcher;
 
 string subtraction(string x, string y);
@@ -56,6 +57,14 @@ bool is_closing_bracket(char in){
 
 bool is_divisor_fraction(string divisor){
     return divisor.find('.') != string::npos;
+}
+
+bool is_value_zero(string value){
+    if(regex_search(value, matcher, rgx_zero_value)){
+        return matcher[0].length() == value.length();
+    }
+
+    return false;
 }
 
 char get_opening_bracket(char in){
@@ -595,6 +604,18 @@ string multiplication(string x, string y) {
 }
 
 string division(string dividend, string divisor){
+    if(is_value_zero(divisor)){
+        cerr<<"Error: Division by zero!\n";
+        exit(1);
+    }
+    if(is_value_zero(dividend)){
+        return "0";
+    }
+
+    while(divisor[0] == '0'){
+        divisor.erase(0, 1);
+    }
+
     string quotient = "0";
     string result;
     string decimal_part = "";
@@ -603,8 +624,8 @@ string division(string dividend, string divisor){
     if(is_divisor_fraction(divisor)){
         handle_fraction_divisor(divisor, dividend);
     }
-
     size_t dividend_decimal_pos = dividend.find('.');
+
     if(dividend_decimal_pos != string::npos){
         decimal_part = reverse_string(dividend.substr(dividend_decimal_pos +1 ));
         dividend.erase(dividend_decimal_pos);
@@ -760,7 +781,7 @@ void calculate(){
     }
 
     // clean the result string
-    if(regex_search(res, matcher, rgx)){
+    if(regex_search(res, matcher, rgx_trailing_zeros)){
         size_t dec_pos = res.find('.');
 
         if(res.length() - dec_pos == matcher[0].length()){
@@ -773,10 +794,11 @@ void calculate(){
     operators.pop();
 }
 
-string inputs[] = {"66/.2","1.66/0.567", "1.85/1.3", "0.05+0.3", "100/1.8", "1.1/1.82", "12.23/6.11", "10/5", "5/10", "1/3", "1.0/3", "1.2254/3", "19.26/4", "192.568/11"};
+string div_inputs[] = {"0/5", "66/.2","1.66/0.567", "1.85/1.3", "100/1.8", "1.1/1.82", "12.23/6.11", "10/5", "5/10", "1/3", "1.0/3", "1.2254/3", "19.26/4", "192.568/11"};
+string add_inputs[] = {"0.05+0.3", ".05+.3", "0.05+.3", ".05+0.3", "-05+3"};
 
 int main(){
-    string input = inputs[13];
+    string input = div_inputs[0];
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
