@@ -825,10 +825,15 @@ void calculate(){
     operators.pop();
 }
 
-string inputs[] = {"2+5+0.3-18-.001+23*0.5", "2+5+(0.3-18)-(.001+23)*0.5", "2/5-6.001+0.2*0-5+.5/.2", "2/5-6.001+[0.2*{(0-5)+0.5}]/0.2", "2+[5-3*5/(1-1)]"};
+//string inputs[] = {"2+5+0.3-18-.001+23*0.5", "2+5+(0.3-18)-(.001+23)*0.5", "2/5-6.001+0.2*0-5+.5/.2", "2/5-6.001+[0.2*{(0-5)+0.5}]/0.2", "2+[5-3*5/(1-1)]"};
 
-int main(){
-    string input = inputs[1];
+int main(int argc, char* argv[]){
+    if(argc < 2){
+        cerr<<"No expression provided.\n";
+        return -1;
+    }
+
+    string input = argv[1];
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
