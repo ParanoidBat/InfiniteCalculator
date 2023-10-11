@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <regex>
 
-#define MAX_DECIMAL_PLACES 10
+#define MAX_DECIMAL_PLACES 30
 
 using namespace std;
 
@@ -198,6 +198,30 @@ void handle_fraction_divisor(string& divisor, string& dividend){
     divisor.erase(dec_pos_divisor, 1);
     while(divisor[0] == '0'){
         divisor.erase(0, 1);
+    }
+}
+
+void prepare_division_values(string& divisor, string& dividend){
+    while(divisor[0] == '0'){
+        divisor.erase(0, 1);
+    }
+    while(dividend[0] == '0'){
+        dividend.erase(0, 1);
+    }
+
+    size_t dec_pos_dividend = dividend.find('.');
+    size_t dec_pos_divisor = divisor.find('.');
+    regex rgx("0*$");
+
+    if(dec_pos_dividend != string::npos){
+        if(regex_search(dividend, matcher, rgx)){
+            dividend.erase(dividend.length() - matcher[0].length());
+        }
+    }
+    if(dec_pos_divisor != string::npos){
+        if(regex_search(divisor, matcher, rgx)){
+            divisor.erase(divisor.length() - matcher[0].length());
+        }
     }
 }
 
@@ -604,6 +628,24 @@ string multiplication(string x, string y) {
 }
 
 string division(string dividend, string divisor){
+    bool isSigned = false;
+
+    if((dividend.at(0) == '-') != (divisor.at(0) == '-')){
+        isSigned = true;
+
+        if(dividend.at(0) == '-'){
+            dividend.erase(dividend.begin());
+        }
+        else{
+            divisor.erase(divisor.begin());
+        }
+    }
+    if(dividend.at(0) == '-' && divisor.at(0) == '-'){
+        // remove the signs
+        dividend.erase(dividend.begin());
+        divisor.erase(divisor.begin());
+    }
+
     if(is_value_zero(divisor)){
         cerr<<"Error: Division by zero!\n";
         exit(1);
@@ -612,15 +654,12 @@ string division(string dividend, string divisor){
         return "0";
     }
 
-    while(divisor[0] == '0'){
-        divisor.erase(0, 1);
-    }
-
     string quotient = "0";
     string result;
     string decimal_part = "";
     bool quotient_has_decimal = false;
 
+    prepare_division_values(divisor, dividend);
     if(is_divisor_fraction(divisor)){
         handle_fraction_divisor(divisor, dividend);
     }
@@ -754,6 +793,9 @@ string division(string dividend, string divisor){
         }
     }
 
+    if(isSigned){
+        result.insert(result.begin(), '-');
+    }
     return result;
 }
 
@@ -790,15 +832,16 @@ void calculate(){
     }
     res.shrink_to_fit();
 
+    cout<<operand1<<" "<<operators.top()<<" "<<operand2<<" = "<<res<<endl;
+
     numbers.push(res);
     operators.pop();
 }
 
-string div_inputs[] = {"0/5", "66/.2","1.66/0.567", "1.85/1.3", "100/1.8", "1.1/1.82", "12.23/6.11", "10/5", "5/10", "1/3", "1.0/3", "1.2254/3", "19.26/4", "192.568/11"};
-string add_inputs[] = {"0.05+0.3", ".05+.3", "0.05+.3", ".05+0.3", "-05+3"};
+string inputs[] = {"2+5+0.3-18-.001+23*0.5", "2+5+(0.3-18)-(.001+23)*0.5", "2/5-6.001+0.2*0-5+.5/.2", "2/5-6.001+[0.2*{(0-5)+0.5}]/0.2"};
 
 int main(){
-    string input = div_inputs[0];
+    string input = inputs[3];
     int input_len = input.length();
     char in;
     unordered_map<char, short> op_prec;
